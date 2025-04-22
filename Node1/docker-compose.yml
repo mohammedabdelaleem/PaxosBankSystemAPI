@@ -1,0 +1,30 @@
+services:
+  paxos-node1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5001:80"
+    environment:
+      - NODE_ID=1
+      - PEERS=http://paxos-node2,http://paxos-node3
+
+  paxos-node2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5002:80"
+    environment:
+      - NODE_ID=2
+      - PEERS=http://paxos-node1,http://paxos-node3
+
+  paxos-node3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5003:80"
+    environment:
+      - NODE_ID=3
+      - PEERS=http://paxos-node1,http://paxos-node2
