@@ -1,64 +1,73 @@
-﻿
-namespace Node1.Services.Auth;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Node1.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
-public class AuthService : IAuthService
+namespace Node1.Services.Auth
 {
-	private readonly AppDbContext _context;
-	private readonly IConfiguration _config;
-
-	public AuthService(AppDbContext context, IConfiguration config)
+	public class AuthService : IAuthService
 	{
-		_context = context;
-		_config = config;
-	}
+		private readonly UserManager<ApplicationUser> _userManager;
+		private readonly IConfiguration _config;
 
-	public async Task<string> RegisterAsync(RegisterRequestDTO request)
-	{
-		if (_context.Users.Any(u => u.Username == request.Username))
-			throw new Exception("Username already exists.");
-
-		var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-
-		var user = new User
+		public AuthService(UserManager<ApplicationUser> userManager, IConfiguration config)
 		{
-			Username = request.Username,
-			PasswordHash = passwordHash
-		};
+			_userManager = userManager;
+			_config = config;
+		}
 
-		_context.Users.Add(user);
-		await _context.SaveChangesAsync();
+		public async Task<string> RegisterAsync(RegisterRequestDTO request)
+		{
+			var existingUser = await _userManager.FindByNameAsync(request.Username);
+			if (existingUser != null)
+				throw new Exception("Username already exists.");
 
-		return GenerateJwtToken(user);
-	}
+			var user = new ApplicationUser
+			{
+				UserName = request.Username
+			};
 
-	public async Task<string> LoginAsync(LoginRequestDTO request)
-	{
-		var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
-		if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-			throw new Exception("Invalid username or password.");
+			var result = await _userManager.CreateAsync(user, request.Password);
 
-		return GenerateJwtToken(user);
-	}
+			if (!result.Succeeded)
+				throw new Exception(string.Join("; ", result.Errors.Select(e => e.Description)));
 
-	private string GenerateJwtToken(User user)
-	{
-		var claims = new[] {
-			new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-			new Claim(ClaimTypes.Name, user.Username)
-		};
+			return GenerateJwtToken(user);
+		}
 
-		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-		var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-		var expires = DateTime.Now.AddMinutes(Convert.ToDouble(_config["Jwt:ExpiresInMinutes"]));
+		public async Task<string> LoginAsync(LoginRequestDTO request)
+		{
+			var user = await _userManager.FindByNameAsync(request.Username);
+			if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
+				throw new Exception("Invalid username or password.");
 
-		var token = new JwtSecurityToken(
-			issuer: _config["Jwt:Issuer"],
-			audience: _config["Jwt:Audience"],
-			claims: claims,
-			expires: expires,
-			signingCredentials: creds
-		);
+			return GenerateJwtToken(user);
+		}
 
-		return new JwtSecurityTokenHandler().WriteToken(token);
+		private string GenerateJwtToken(ApplicationUser user)
+		{
+			var claims = new[]
+			{
+				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+				new Claim(ClaimTypes.Name, user.UserName)
+			};
+
+			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+			var expires = DateTime.Now.AddMinutes(Convert.ToDouble(_config["Jwt:ExpiresInMinutes"]));
+
+			var token = new JwtSecurityToken(
+				issuer: _config["Jwt:Issuer"],
+				audience: _config["Jwt:Audience"],
+				claims: claims,
+				expires: expires,
+				signingCredentials: creds
+			);
+
+			return new JwtSecurityTokenHandler().WriteToken(token);
+		}
 	}
 }

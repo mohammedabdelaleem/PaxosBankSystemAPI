@@ -2,6 +2,25 @@
 
 public interface ITransactionService
 {
-	Task<(bool Success, string? ErrorMessage, int? TransactionId)> InitiateTransferAsync(int fromUserId, int toUserId, decimal amount);
+	Task<TransactionResult> InitiateTransferAsync(int fromAccountId, int toAccountId, double amount);
 	Task<IEnumerable<Transaction>> GetTransactionHistoryAsync(int userId);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+//namespace Node1.Services;
+
+//public interface ITransactionService
+//{
+//	Task<TransactionResult> InitiateTransferAsync(int fromUserId, int toUserId, double amount);
+//	Task<IEnumerable<Transaction>> GetTransactionHistoryAsync(int userId);
+//}

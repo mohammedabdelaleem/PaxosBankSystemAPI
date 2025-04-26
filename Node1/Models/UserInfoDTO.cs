@@ -2,7 +2,7 @@
 
 public class UserInfoDTO
 {
-	public int Id { get; set; }
+	public string Id { get; set; }
 	public string Name { get; set; }
 	public ICollection<int> AccountsId { get; set; }
 

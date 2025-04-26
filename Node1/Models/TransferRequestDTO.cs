@@ -6,9 +6,10 @@ public class TransferRequestDTO
 {
 
 	[Required]
-	public int ToUserId { get; set; }
-
+	[Range(1, double.MaxValue, ErrorMessage = "Amount must be greater than 0.")]
+	public double Amount { get; set; }
 
 	[Required]
-	public decimal Amount { get; set; }
+	[Range(1, int.MaxValue, ErrorMessage = "Invalid recipient user ID.")]
+	public int ToAccountId { get; set; }
 }

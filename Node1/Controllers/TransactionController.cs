@@ -4,16 +4,18 @@ using System.Security.Claims;
 
 namespace Node1.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TransactionController : ControllerBase
 {
 	private readonly ITransactionService _transactionService;
+	private readonly IUserService _userService;
 
-	public TransactionController(ITransactionService transactionService)
+	public TransactionController(ITransactionService transactionService, IUserService userService)
 	{
 		_transactionService = transactionService;
+		_userService = userService;
 	}
 
 
@@ -21,20 +23,26 @@ public class TransactionController : ControllerBase
 	[HttpPost("transfer")]
 	public async Task<IActionResult> Transfer([FromBody] TransferRequestDTO request)
 	{
-		if (request == null || request.Amount <= 0 || request.ToUserId <= 0)
+		if (request == null || request.Amount <= 0 || request.ToAccountId <= 0)
 		{
 			return BadRequest(new { error = "Invalid transfer request data." });
 		}
 
-		var fromUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-		if (!int.TryParse(fromUserIdStr, out var fromUserId))
+
+		var fromAccountIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (!int.TryParse(fromAccountIdStr, out var fromAccountId))
 		{
 			return Unauthorized();
 		}
 
+		//if(!await _userService.IsExists(fromAccountId) || !await _userService.IsExists(request.ToAccountId) )
+		//	return BadRequest(new { error = "Invalid users Ids" });
+
+
+
 		try
 		{
-			var result = await _transactionService.InitiateTransferAsync(fromUserId, request.ToUserId, request.Amount);
+			var result = await _transactionService.InitiateTransferAsync(fromAccountId, request.ToAccountId, request.Amount);
 
 			return result.Success
 				? Ok(new { message = "Transfer initiated", transactionId = result.TransactionId })
@@ -61,3 +69,4 @@ public class TransactionController : ControllerBase
 		return Ok(history);
 	}
 }
+

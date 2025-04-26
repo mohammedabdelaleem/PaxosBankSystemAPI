@@ -4,9 +4,9 @@ using System.Security.Claims;
 
 namespace Node1.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class AccountController : ControllerBase
 {
 	private readonly IAccountService _accountService;
@@ -48,14 +48,20 @@ public class AccountController : ControllerBase
 		var account = await _accountService.GetAsync(userId);
 
 		return account != null
-			? Ok(new { account.Id, account.Balance, Username = account.User.Username })
-			: NotFound(new { message = "Account Not Found. Register or Login Please." });
+			? Ok(new { account.Id, account.Balance, Username = account.User.UserName })
+			: NotFound(new { message = $"Account Not Found For This User {userIdStr}." });
 	}
 
 	[HttpGet("all")]
 	public async Task<IActionResult> GetAll()
 	{
-		var accounts = await _accountService.GetAllAsync();
+		var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (!int.TryParse(userIdStr, out var userId))
+		{
+			return Unauthorized();
+		}
+
+		var accounts = await _accountService.GetAllAsync(a=>a.UserId == userId);
 		return accounts != null && accounts.Any()
 			? Ok(accounts)
 			: NotFound(new { message = "No Accounts Here." });

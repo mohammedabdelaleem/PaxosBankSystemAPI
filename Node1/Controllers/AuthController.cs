@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Node1.Controllers;
-
 [ApiController]
 [Route("[controller]")]
 public class AuthController : ControllerBase

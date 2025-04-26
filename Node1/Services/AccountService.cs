@@ -1,5 +1,7 @@
 ﻿
 
+using System.Linq.Expressions;
+
 namespace Node1.Services;
 
 public class AccountService : IAccountService
@@ -13,13 +15,16 @@ public class AccountService : IAccountService
 
 
 
-	public async Task<List<AccountInfoResponseDTO>> GetAllAsync()
+	public async Task<List<AccountInfoResponseDTO>> GetAllAsync(Expression<Func<Account, bool>> filter = null)
 	{
+	
+
 		var accounts = await _context.Accounts
 			.Include(x=>x.User)
+			.Where(filter)
 			.Select(a=>  new AccountInfoResponseDTO{
 			Id = a.Id,
-			UserName = a.User.Username,
+			UserName = a.User.UserName,
 			UserId = a.UserId,
 			Balance = a.Balance,
 			}).ToListAsync();
@@ -80,8 +85,8 @@ public class AccountService : IAccountService
 
 		var transaction = new Transaction
 		{
-			FromUserId = fromUserId,
-			ToUserId = toUserId,
+			FromAccountId = fromUserId,
+			ToAccountId = toUserId,
 			Amount = amount,
 			Timestamp = DateTime.UtcNow
 		};
@@ -95,10 +100,9 @@ public class AccountService : IAccountService
 	public async Task<IEnumerable<Transaction>> GetTransactionHistoryAsync(int userId)
 	{
 		return await _context.Transactions
-			.Where(t => t.FromUserId == userId || t.ToUserId == userId)
+			.Where(t => t.FromAccountId == userId || t.ToAccountId == userId)
 			.OrderByDescending(t => t.Timestamp)
 			.ToListAsync();
 	}
 
-	
 }

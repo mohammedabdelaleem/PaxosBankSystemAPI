@@ -9,4 +9,5 @@ global using Node1.Services;
 global using Node1.Services.Auth;
 global using System.IdentityModel.Tokens.Jwt;
 global using System.Security.Claims;
+global using Node1.Models.Paxos;
 
